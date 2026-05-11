@@ -24,6 +24,10 @@
 #Zip files
 *.zip
 
+#Excel and PDFS
+*.xlsv
+*.pdf
+
 # produced vignettes
 vignettes/*.html
 vignettes/*.pdf
