@@ -27,6 +27,7 @@
 #Excel and PDFS
 *.xlsx
 *.pdf
+*.csv
 
 # produced vignettes
 vignettes/*.html
