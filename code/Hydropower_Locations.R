@@ -96,7 +96,7 @@ ggplot(eha_ca, aes(Lon, Lat, color = plant_type)) +
 
 # Match plants between datasets using EIA Plant Code (EIA_PtID in EHA)
 joined <- d %>%
-  left_join(eha_ca %>% select(EIA_PtID, EHA_PtID, plant_type, CH_MWh),
+  left_join(eha_ca %>% select(EIA_PtID, plant_type),
             by = c("Plant Code" = "EIA_PtID"))
 
 #Assign Unknown
@@ -108,6 +108,15 @@ joined <- joined %>%
   filter(!Technology %in% c("Hydroelectric Pumped Storage",
                             "Hydroelectric Pumped Storage; Conventional Hydroelectric"))
 
+#Subset to values over 15 MW of installed capacity
+joined <- joined %>% filter(mw > 50)
+
+#Clean up the data to removed PGE
+joined <- joined %>%
+  filter(!`Utility Name` %in% c("Pacific Gas & Electric Co."))
+
+
+
 ggplot(joined, aes(Longitude, Latitude, size = mw, color = plant_type)) +
   geom_polygon(data = ca, aes(long, lat, group = group),
                fill = "lightgray", inherit.aes = FALSE) +
@@ -117,22 +126,14 @@ ggplot(joined, aes(Longitude, Latitude, size = mw, color = plant_type)) +
        title = "CA Hydro: Capacity (MW) and Type") +
   theme_void()
 
+#Save the data
+joined <- joined %>% arrange(desc(mw))
+write.csv(joined, "data/combined_plants.csv", row.names = FALSE)
 
 # -----------------------------------------------------------------------------
-# PART 4: Pie chart — total MW capacity by plant type
+# PART 4: Read the NID data
 # -----------------------------------------------------------------------------
+nid <- read.csv("data/nid_dams.csv", skip = 1)
+nid <- nid %>% filter(State == "California")
+nid_sub <- nid %>% select(-c(Other.Names, Former.Names, NID.ID, Other.Structure.ID, Federal.ID, Designer.Names, Number.of.Associated.Structures, State.or.Federal.Agency.ID, Distance.to.Nearest.City..Miles., American.Indian.Alaska.Native.Native.Hawaiian))
 
-capacity_by_type <- joined %>%
-  group_by(plant_type) %>%
-  summarise(total_mw = sum(mw, na.rm = TRUE), .groups = "drop") %>%
-  mutate(pct = total_mw / sum(total_mw) * 100)
-
-ggplot(capacity_by_type, aes(x = "", y = total_mw, fill = plant_type)) +
-  geom_col(width = 1) +
-  coord_polar(theta = "y") +
-  geom_text(aes(label = sprintf("%s\n%.0f MW (%.1f%%)",
-                                plant_type, total_mw, pct)),
-            position = position_stack(vjust = 0.5)) +
-  labs(fill = "Plant Type",
-       title = "Total CA Hydro Capacity by Type") +
-  theme_void()
